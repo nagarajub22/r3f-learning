@@ -2,7 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import { DoubleSide, Uint16BufferAttribute } from "three";
 
-export default function BufferGeometryShaders(props: any) {
+export default function BufferGeometryShadersInteraction(props: any) {
     // Geometry Values
     const positions = new Float32Array([
         // x,   y,  z               
@@ -29,7 +29,7 @@ export default function BufferGeometryShaders(props: any) {
     const uniforms = {
         u_resolution: { value: { x: canvasEl.width, y: canvasEl.height } },
         u_time: { value: 0.0 },
-        u_mouse: { value: { x: 0, y: 0 } }
+        u_mouse: { value: { x: 1, y: 1 } }
     };
     const vertexShader = `
         precision mediump float;
@@ -57,8 +57,10 @@ export default function BufferGeometryShaders(props: any) {
         varying vec4 fragColor;
 
         void main() {
-            vec4 newcolor = vec4(fragColor);
-            gl_FragColor = vec4(newcolor);
+            float r = u_mouse.x / u_resolution.x;
+            float g = u_mouse.y / u_resolution.y;
+            float b = u_time;
+            gl_FragColor = vec4(r, sin(g), sin(b), 1);
         }
     `;
 
@@ -73,7 +75,11 @@ export default function BufferGeometryShaders(props: any) {
         <mesh 
             ref={ref} 
             position={props?.position} 
-            rotation={props?.rotation} 
+            rotation={props?.rotation}
+            onPointerMove={(evt) => {
+                uniforms.u_mouse.value.x = evt.x;
+                uniforms.u_mouse.value.y = evt.y;
+            }}
         >
             <bufferGeometry attach="geometry" index={indices}>
                 <bufferAttribute

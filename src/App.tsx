@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber';
 import './App.css';
 import GizmoHelperComp from './common/helpers/GizmoHelperComp';
 import BufferGeometryShaders from './lessons/buffer-geometry-shaders';
+import BufferGeometryShadersInteraction from './lessons/buffer-geometry-shaders-interactions';
 
 function App() {
   return (
@@ -9,7 +10,8 @@ function App() {
       <gridHelper/>
       <ambientLight />
       <GizmoHelperComp/>
-      <BufferGeometryShaders rotation={[-Math.PI/2, 0, 0]}/>
+      <BufferGeometryShaders />
+      <BufferGeometryShadersInteraction rotation={[-Math.PI/2, 0, 0]}/>
     </Canvas>
   );
 }
