@@ -75,7 +75,10 @@ export default function BufferGeometryShaders(props: any) {
             position={props?.position} 
             rotation={props?.rotation} 
         >
-            <bufferGeometry attach="geometry" index={indices}>
+            <bufferGeometry 
+                attach="geometry" 
+                index={indices} 
+            >
                 <bufferAttribute
                     attachObject={["attributes", "position"]}
                     array={positions}
