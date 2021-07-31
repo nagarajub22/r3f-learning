@@ -1,0 +1,139 @@
+import { useEffect, useRef, useState } from "react";
+import { Texture, TextureLoader } from "three";
+
+export function ImageToParticlesShaders(props: any) {
+
+    const ref = useRef();
+    const [indices, setIndices] = useState<Uint16Array>(new Uint16Array());
+    const [positions, setPositions] = useState<Float32Array>(new Float32Array());
+    const [colors, setColors] = useState<Float32Array>(new Float32Array());
+    const [uvs, setUVs] = useState<Float32Array>(new Float32Array());
+    const [uniform, setUniform] = useState<any>();
+
+    const vertexShader = `
+        precision mediump float;
+
+        attribute vec3 position;
+        // attribute vec4 color;
+        attribute float u_size;
+
+        uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
+
+        // varying vec4 fragColor;
+
+        void main() {
+            // fragColor = color;
+            vec4 newPosition = modelViewMatrix * vec4(position, 1);
+            newPosition.xyz += position * u_size;
+            vec4 finalPosition = projectionMatrix * newPosition;
+            gl_Position = finalPosition;
+        }
+    `;
+    const fragmentShader = `
+        precision mediump float;
+
+        uniform float u_time;
+
+        // varying vec4 fragColor;
+
+        void main() {
+            vec4 newcolor = vec4(1.0, 0, 0, 1);
+            gl_FragColor = newcolor;
+        }
+    `;
+
+    useEffect(() => {
+        const myImgUrl = '/me.png';
+        (new TextureLoader()).load(myImgUrl, (texture: Texture) => {
+
+            if (!texture) {
+                return;
+            }
+
+            const threshold = 34;
+            const tempCanvEl = document.createElement('canvas');
+            const ctx = tempCanvEl.getContext('2d');
+            const textureImage = texture.image;
+            const totalPixels = textureImage.width * textureImage.height;
+
+            tempCanvEl.width = textureImage.width;
+            tempCanvEl.height = textureImage.height;
+
+            if (ctx) {
+                let totalVisiblePixels = 0;
+
+                ctx?.scale(1, 1);
+                ctx?.drawImage(textureImage, 0, 0, textureImage.width, textureImage.height);
+
+                const imgData = ctx.getImageData(0, 0, tempCanvEl.width, tempCanvEl.height);
+                const imgColors = Float32Array.from(imgData.data);
+
+                console.log(imgData);
+
+                const newPositions = [];
+                const newColors = [];
+
+                for (let x = 0; x < imgData.width; x++) {
+                    for (let y = 0; y < imgData.height; y++) {
+                        newPositions.push(x, y);
+
+                        const pos: number = ((x - 1) * 200 + (y - 1)) * 4;
+
+                        if (imgColors[pos] >= 0) {
+                            newColors.push(imgColors[pos], imgColors[pos] + 1, imgColors[pos] + 2, imgColors[pos] + 3);
+                        }
+                    }
+                }
+                setPositions(new Float32Array(newPositions));
+                setColors(new Float32Array(newColors));
+                setIndices(new Uint16Array(indices));
+                setUniform({
+                    u_time: { value: 0 },
+                    u_random: { value: 1.0 },
+                    u_depth: { value: 2.0 },
+                    u_size: { value: 1.0 }
+                });
+            }
+
+        });
+    }, []);
+
+    return (
+        <points ref={ref}>
+            <bufferGeometry attach="geometry" onUpdate={(self) => {
+                console.log(self);
+                self.computeVertexNormals();
+            }}>
+                <bufferAttribute
+                    attachObject={["attributes", "position"]}
+                    array={positions}
+                    count={positions.length / 3}
+                    itemSize={3}
+                    normalized={false}
+                />
+                {/* <bufferAttribute
+                    attachObject={["attributes", "color"]}
+                    array={colors}
+                    count={colors.length / 4}
+                    itemSize={4}
+                    normalized={false}
+                /> */}
+            </bufferGeometry>
+            {/* <rawShaderMaterial
+                attach="material"
+                uniforms={uniform}
+                vertexShader={vertexShader}
+                fragmentShader={fragmentShader}
+                depthTest={false}
+                transparent={true}
+            /> */}
+            <pointsMaterial
+                attach="material"
+                vertexColors={true}
+                size={10}
+            />
+        </points>
+    );
+
+}
