@@ -1,5 +1,6 @@
+import { useFrame } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
-import { DoubleSide, InstancedBufferAttribute, Texture, TextureLoader, Uint16BufferAttribute, Vector2 } from "three";
+import { DoubleSide, LinearFilter, RGBFormat, Texture, TextureLoader, Uint16BufferAttribute, Vector2 } from "three";
 
 export function ImageToParticlesTemplate(props: any) {
 
@@ -28,6 +29,7 @@ export function ImageToParticlesTemplate(props: any) {
         uniform mat4 modelViewMatrix;
         uniform mat4 projectionMatrix;
         uniform vec2 uTextureSize;
+        uniform sampler2D uTexture;
 
         attribute vec3 position;
         attribute vec3 offset;
@@ -35,7 +37,6 @@ export function ImageToParticlesTemplate(props: any) {
 
         varying vec2 vPUv;
 
-        uniform sampler2D uTexture;
         
         void main() {
         
@@ -48,26 +49,33 @@ export function ImageToParticlesTemplate(props: any) {
             displaced.xy -= uTextureSize * 0.5;
 
             vec4 mvPosition = modelViewMatrix * vec4(displaced, 1);
-            mvPosition.xyz += position;
+            mvPosition.xyz += position * 2.0;
             gl_Position = projectionMatrix * mvPosition;
         }
     `;
-
     const fragmentShaders = `
         precision highp float;
 
         uniform sampler2D uTexture;
+        uniform vec2 u_resolution;
+        uniform vec2 uTextureSize;
         
         varying vec2 vPUv;
 
         void main() {
-            gl_FragColor = texture2D(uTexture, vPUv);
+
+            vec2 puv = vPUv;
+            vec4 color = texture2D(uTexture,puv);
+            gl_FragColor = color;
         }
     `;
 
+    useFrame(() => {
+        
+    });
 
     return (
-        <mesh>
+        <mesh ref={ref} >
             <instancedBufferGeometry
                 attach="geometry"
                 index={indices}
@@ -110,10 +118,10 @@ export function ImageToParticlesTemplate(props: any) {
 export function ImageToParticlesShaders(props: any) {
 
     const [offset, setOffset] = useState<Float32Array>();
-    const [uniforms, setUniforms] = useState<any>({});
+    const [uniforms, setUniforms] = useState<any>();
 
     useEffect(() => {
-        const myImgUrl = '/picture1.png';
+        const myImgUrl = '/sample-03.png';
         (new TextureLoader()).load(myImgUrl, (texture: Texture) => {
             if (!texture) {
                 return;
@@ -131,7 +139,7 @@ export function ImageToParticlesShaders(props: any) {
             if (ctx) {
                 let totalVisiblePixels = 0;
 
-                ctx?.scale(1, 1);
+                ctx?.scale(1, -1);
                 ctx?.drawImage(textureImage, 0, 0, textureImage.width, textureImage.height);
 
                 const imgData = ctx.getImageData(0, 0, tempCanvEl.width, tempCanvEl.height);
@@ -145,11 +153,15 @@ export function ImageToParticlesShaders(props: any) {
                     offsetsIndices.push(i);
                 }
 
-                setOffset(offsets);
+                texture.minFilter = LinearFilter;
+                texture.magFilter = LinearFilter;
+                texture.format = RGBFormat;
+
                 setUniforms({
                     uTexture: texture,
                     uTextureSize: { value: new Vector2(textureImage.width, textureImage.height) }
                 });
+                setOffset(offsets);
             }
         })
     }, []);
